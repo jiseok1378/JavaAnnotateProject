@@ -7,101 +7,118 @@ import java.util.regex.Pattern;
 
 public class InfoCollector extends fileUtil {
     public enum CollectorFlag {
-        VARIABLE, FUNCTION, OTHERS
+        VARIABLE, FUNCTION, ENUM, CLASS
     }
 
     public static final String REGEX_CLASS = "(((\\s*)(public|private|protected)?(\\s+)(abstract(\\s+))?(class|interface)\\s+\\S+\\s*)((extends|implements)\\s+((\\S*\\s*,\\s*)*)?\\S*\\s*)?((implements)\\s+((\\S*\\s*,\\s*)*)?\\S*\\s*)?)\\{";
     public static final String REGEX_FUNCTION = "(public|private|protected)(((\\s*(static|final)\\s+)?)*)\\s*\\S+\\s*(<.*>)?\\s+\\S+\\s*(\\(.*?\\))";
-    public static final String REGEX_ENUM = "((public|private|protected)\\s*)?enum\\s*\\S*\\s*\\{";
+    public static final String REGEX_ENUM = "enum\\s+\\S+\\s*\\{";
+    public static final String REGEX_VARIABLE = "[A-z|1-9]+\\s+[A-z|1-9]+\\s+=\\s+.+;";
     //public static final String REGEX_VARIABLE = "(((public|private|protected)\\s*)?)((((static|final)\\s*){2})?)(\\w+\\s*(<.*>)?(\\[([0-9])?\\])?\\s+)(\\w+\\s*)(=(\\s*\\(.*\\))*?\\s*(new\\s+)?\\S+(\\s*<.*>\\s*\\(.*\\))?\\s*\\S*\\s*)?;";
-    public static final String REGEX_VARIABLE = "(\\w*\\s*)(\\[.*\\])?(<.*>)?\\s+\\w+\\s*[^+\\-/*](=(\\s*\\S+.*)?[^{])?;";
+    //public static final String REGEX_VARIABLE = "(\\w*\\s*)(\\[.*\\])?(<.*>)?\\s+\\w+\\s*[^+\\-/*](=(\\s*\\S+.*)?[^{])?;";
     public String preconvFileContents = "";
     public String path;
-    public String name;
-    public InfoCollector(String path, String name) {
-        super(path, name);
+    public InfoCollector(String path) {
+        super(path);
         this.path = path;
-        this.name = name;
-        for (String line : readFile().split("\n")) {
-            line = PreConverter.preconverter(line);
+        PreConverter preConverter = new PreConverter();
+        for (String line : readFile().split("\r\n")) {
+            line = preConverter.preconverter(line);
             if (PreConverter.annotationFlag == true) {
                 continue;
             }
-            preconvFileContents += line + "\n";
+
+            preconvFileContents += line + "\r\n";
         }
+
+        preconvFileContents = preConverter.removeLineBreak(preconvFileContents);
+        preconvFileContents = preConverter.removeLineSpace(preconvFileContents);
+        Print.print(preconvFileContents);
     }
     public HashMap<String, Object> AutoCollector(){
-        InfoCollector infoCollector = new InfoCollector(this.path, this.name);
-        ArrayList<String> classList = classCollector(preconvFileContents);
+        InfoCollector infoCollector = new InfoCollector(this.path);
+        ArrayList<Object> classList = classCollector();
+        ArrayList<Object> a = variableCollector();
         HashMap<String, Object> inFileClassFuntion = new HashMap<>();
-
+/*
         for (String className : classList) {
             String classBody = SeparatorCalc.calc(preconvFileContents, className);
             ArrayList<String> functionList = functionCollector(classBody);
             HashMap<String, Object> inClassFuntion = new HashMap<>();
             for(String functionName : functionList){
+
                 String functionBody = SeparatorCalc.calc(classBody,functionName);
                 inClassFuntion.put(functionName, functionBody);
 
-                preconvFileContents = preconvFileContents.replaceAll(Pattern.quote(functionName), "")
-                        .replaceAll(Pattern.quote(functionBody), "");
-            }
 
+                //preconvFileContents = preconvFileContents.replaceAll(Pattern.quote(functionName), "")
+                //        .replaceAll(Pattern.quote(functionBody), "");
+                ArrayList<String> varList = variableCollector(functionBody);
+                Print.print(varList.toString());
+            }
             inFileClassFuntion.put(className, inClassFuntion);
         }
-        System.out.println(preconvFileContents);
+
+*/
         return inFileClassFuntion;
     }
-    public ArrayList<String> classCollector(String preconvFileContents) {
-        ArrayList<String> classList = getPatternMatch(preconvFileContents, REGEX_CLASS, CollectorFlag.OTHERS);
-        System.out.println(classList);
+    public ArrayList<Object> classCollector() {
+        ArrayList<Object> classList = getPatternMatch(preconvFileContents, REGEX_CLASS, CollectorFlag.CLASS);
         return classList;
     }
 
-    public ArrayList<String> enumCollector(String preconvFileContents) {
-        ArrayList<String> enumList = getPatternMatch(preconvFileContents, REGEX_ENUM, CollectorFlag.OTHERS);
-        System.out.println(enumList);
+    public ArrayList<Object> enumCollector() {
+        ArrayList<Object> enumList = getPatternMatch(preconvFileContents, REGEX_ENUM, CollectorFlag.ENUM);
         return enumList;
     }
 
-    public ArrayList<String> functionCollector(String preconvFileContents) {
-        ArrayList<String> functionList = getPatternMatch(preconvFileContents, REGEX_FUNCTION, CollectorFlag.FUNCTION);
-        System.out.println(functionList);
+    public ArrayList<Object> functionCollector() {
+        ArrayList<Object> functionList = getPatternMatch(preconvFileContents, REGEX_FUNCTION, CollectorFlag.FUNCTION);
         return functionList;
     }
 
-    public ArrayList<String> variableCollector(String preconvFileContents) {
-        ArrayList<String> variableList = getPatternMatch(preconvFileContents, REGEX_VARIABLE, CollectorFlag.VARIABLE);
-        System.out.println(variableList);
+    public ArrayList<Object> variableCollector() {
+        ArrayList<Object> variableList = getPatternMatch(preconvFileContents, REGEX_VARIABLE, CollectorFlag.VARIABLE);
         return variableList;
     }
 
-    public static ArrayList<String> getPatternMatch(String fileContents, String regex, CollectorFlag FLAG) {
+    public ArrayList<Object> getPatternMatch(String fileContents, String regex, CollectorFlag FLAG) {
         Pattern pattern = Pattern.compile(regex);
         Matcher matcher = pattern.matcher(fileContents);
-        ArrayList<String> patternArray = new ArrayList<>();
+        ArrayList<Object> patternArray = new ArrayList<>();
 
         while (matcher.find()) {
-
-            if (FLAG == CollectorFlag.OTHERS) {
-                patternArray.add(matcher.group().replaceAll("\\{", "").trim());
+            HashMap<String, Object> map = new HashMap<>();
+            if (FLAG == CollectorFlag.CLASS) {
+                map.put("className", matcher.group().replaceAll("\\{", "").trim());
+                map.put("classAnnotate", "");
+                patternArray.add(map);
+            }
+            else if(FLAG == CollectorFlag.ENUM) {
+                map.put("enumName", matcher.group().replaceAll("\\{", "").trim());
+                map.put("enumAnnotate", "");
+                patternArray.add(map);
             }
             else if (FLAG == CollectorFlag.FUNCTION){
                 if(!matcher.group().contains("class") || !matcher.group().contains("interface") || !matcher.group().contains("enum")){
-                    patternArray.add(matcher.group().replaceAll("\\{", "").trim());
+                    map.put("functionName", matcher.group().replaceAll("\\{", "").trim());
+                    map.put("functionAnnotate", "");
+                    patternArray.add(map);
                 }
             }
             else if (FLAG == CollectorFlag.VARIABLE) {
                 if (matcher.group().contains("=") && matcher.group()
-                                                            .trim().split("=")[0]
-                                                            .split(" ").length == 1) {
+                        .trim().split("=")[0]
+                        .split(" ").length == 1) {
                     continue;
                 }
                 else {
                     if(matcher.group().contains("return") ||matcher.group().contains("continue")||matcher.group().contains("break")){
                         continue;
                     }
-                    patternArray.add(matcher.group().trim());
+                    map.put("variableName", matcher.group().trim());
+                    map.put("variableAnnotate", "");
+                    patternArray.add(map);
                 }
 
             }
