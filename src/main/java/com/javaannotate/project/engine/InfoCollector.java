@@ -92,17 +92,20 @@ public class InfoCollector extends fileUtil {
             if (FLAG == CollectorFlag.CLASS) {
                 map.put("className", matcher.group().replaceAll("\\{", "").trim());
                 map.put("classAnnotate", "");
+                map.put("delete", false);
                 patternArray.add(map);
             }
             else if(FLAG == CollectorFlag.ENUM) {
                 map.put("enumName", matcher.group().replaceAll("\\{", "").trim());
                 map.put("enumAnnotate", "");
+                map.put("delete", false);
                 patternArray.add(map);
             }
             else if (FLAG == CollectorFlag.FUNCTION){
                 if(!matcher.group().contains("class") || !matcher.group().contains("interface") || !matcher.group().contains("enum")){
                     map.put("functionName", matcher.group().replaceAll("\\{", "").trim());
                     map.put("functionAnnotate", "");
+                    map.put("delete", false);
                     patternArray.add(map);
                 }
             }
@@ -118,6 +121,7 @@ public class InfoCollector extends fileUtil {
                     }
                     map.put("variableName", matcher.group().trim());
                     map.put("variableAnnotate", "");
+                    map.put("delete", false);
                     patternArray.add(map);
                 }
 
