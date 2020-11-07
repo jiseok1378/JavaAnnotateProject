@@ -98,7 +98,7 @@ public class PreConverter {
         if(line.contains("*/")){
             if (!matcher.find()) {
                 annotationFlag = false;
-                line = line.replaceAll(".*\\*\\/", "");
+                line = line.replaceAll("\\/\\*\\*.*\\*\\/", "");
             }
         }
         return line;

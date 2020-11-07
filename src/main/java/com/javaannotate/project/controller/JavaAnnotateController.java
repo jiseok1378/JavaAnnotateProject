@@ -33,7 +33,7 @@ public class JavaAnnotateController {
             String fileName = fileNametemp[fileNametemp.length -1];
             InfoCollector infoCollector = new InfoCollector(filePath);
             JSONObject collecting = new JSONObject();
-            collecting.put("fileName", fileName);
+            collecting.put("filePath", filePath);
             collecting.put("enumList", infoCollector.enumCollector());
             collecting.put("functionList",infoCollector.functionCollector());
             collecting.put("variableList",infoCollector.variableCollector());
