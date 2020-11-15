@@ -1,14 +1,12 @@
 package com.javaannotate.project.controller;
 
-import com.fasterxml.jackson.core.JsonParser;
 import com.itextpdf.text.Document;
 import com.itextpdf.text.Paragraph;
-import com.itextpdf.text.pdf.PdfPHeaderCell;
 import com.itextpdf.text.pdf.PdfPTable;
 import com.itextpdf.text.pdf.PdfWriter;
 import com.javaannotate.project.engine.InfoCollector;
 import com.javaannotate.project.engine.Print;
-import com.javaannotate.project.engine.SeparatorCalc;
+import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.springframework.web.bind.annotation.*;
@@ -17,8 +15,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @RestController
 public class JavaAnnotateController {
@@ -50,6 +48,123 @@ public class JavaAnnotateController {
         JSONObject result = new JSONObject();
         result.put("result", collectingFileList);
         return result;
+    }
+    public String csvStringBuilder(List<String> list){
+        String buildingString = "";
+        for(String i : list){
+            buildingString += "%s,";
+        }
+        buildingString = buildingString.substring(0,buildingString.length() - 1);
+        return String.format(buildingString, list.toArray());
+    }
+    @RequestMapping(value = "/csv", method = RequestMethod.POST)
+    public String CSVCreate(HttpServletRequest request, HttpServletResponse response, @RequestBody String json) throws Exception{
+
+        JSONParser jp = new JSONParser();
+        JSONArray map = (JSONArray)jp.parse(json);
+        StringBuilder sb = new StringBuilder();
+        sb.append("filePath,className,Annotate,functionName,Annotate,enumName,Annotate,variableName,Annotate\n");
+        int i = 0;
+        for(Object a : map){
+            List<String> sbData = new ArrayList<>();
+            JSONObject data = (JSONObject)a;
+            String path = (String)data.get("filePath");
+            sb.append(path + ",");
+
+            ArrayList<Object> enumList = (ArrayList)data.get("enumList");
+            ArrayList<Object> functionList = (ArrayList)data.get("functionList");
+            ArrayList<Object> classList = (ArrayList)data.get("classList");
+            ArrayList<Object> variableList = (ArrayList)data.get("variableList");
+
+            ArrayList sizeList = new ArrayList();
+            sizeList.add(enumList.size());
+            sizeList.add(functionList.size());
+            sizeList.add(classList.size());
+            sizeList.add(variableList.size());
+            Integer maxSize = (Integer)Collections.max(sizeList);
+
+            Print.print(maxSize.toString());
+            for (int j = 0; j <= maxSize; j++){
+                if(classList.size() > j ){
+                    JSONObject classInfo = (JSONObject) classList.get(j);
+                    if((Boolean) classInfo.get("delete")){
+                        sbData.add("");
+                        sbData.add("");
+                    }
+                    else{
+                        sbData.add(((String)classInfo.get("className")).replaceAll(",", "，").replaceAll("\n",""));
+                        sbData.add(((String)classInfo.get("classAnnotate")).replaceAll(",", "，").replaceAll("\n",""));
+                    }
+                }
+                else{
+                    sbData.add("");
+                    sbData.add("");
+                }
+                if(functionList.size() > j){
+                    JSONObject functionInfo = (JSONObject) functionList.get(j);
+                    if((Boolean) functionInfo.get("delete")){
+                        sbData.add("");
+                        sbData.add("");
+                    }
+                    else{
+                        sbData.add(((String)functionInfo.get("functionName")).replaceAll(",", "，").replaceAll("\n",""));
+                        sbData.add(((String)functionInfo.get("functionAnnotate")).replaceAll(",", "，").replaceAll("\n",""));
+                    }
+                }
+                else{
+                    sbData.add("");
+                    sbData.add("");
+                }
+
+                if(enumList.size() > j){
+                    JSONObject enumInfo = (JSONObject) enumList.get(j);
+                    if((Boolean) enumInfo.get("delete")){
+                        sbData.add("");
+                        sbData.add("");
+                    }
+                    else{
+                        sbData.add(((String)enumInfo.get("enumName")).replaceAll(",", "，").replaceAll("\n",""));
+                        sbData.add(((String)enumInfo.get("enumAnnotate")).replaceAll(",", "，").replaceAll("\n",""));
+                    }
+                }
+                else{
+                    sbData.add("");
+                    sbData.add("");
+                }
+
+                if(variableList.size() > j) {
+                    JSONObject variableInfo = (JSONObject) variableList.get(j);
+                    if ((Boolean) variableInfo.get("delete")) {
+                        sbData.add("");
+                        sbData.add("");
+                    }
+                    else {
+                        sbData.add(((String) variableInfo.get("variableName")).replaceAll(",", "，").replaceAll("\n", ""));
+                        sbData.add(((String) variableInfo.get("variableAnnotate")).replaceAll(",", "，").replaceAll("\n", ""));
+                    }
+                }
+                else {
+                    sbData.add("");
+                    sbData.add("");
+                }
+                AtomicBoolean t = new AtomicBoolean(false);
+                sbData.stream().parallel().forEach(x->{
+                    if(!x.equals("")){
+                        t.set(true);
+                    };
+                });
+                if(t.get()){
+                    sbData.add("\n");
+                }
+                else{
+                    sbData = new ArrayList<>();
+                    sbData.add("");
+                }
+            }
+            sb.append(csvStringBuilder(sbData)+"\n");
+        }
+        Print.print(sb.toString());
+        return sb.toString();
     }
     @RequestMapping(value = "/pdf")
     public String pdfCreate(HttpServletRequest req) throws Exception {
