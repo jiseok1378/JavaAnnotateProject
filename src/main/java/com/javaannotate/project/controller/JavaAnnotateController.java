@@ -17,6 +17,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.regex.Pattern;
 
 @RestController
 public class JavaAnnotateController {
@@ -61,14 +62,15 @@ public class JavaAnnotateController {
     public String CSVCreate(HttpServletRequest request, HttpServletResponse response, @RequestBody String json) throws Exception{
 
         JSONParser jp = new JSONParser();
-        JSONArray map = (JSONArray)jp.parse(json);
+        JSONObject map = (JSONObject) jp.parse(json);
+        String projectPath = (String)map.get("projectPath");
         StringBuilder sb = new StringBuilder();
         sb.append("filePath,className,Annotate,functionName,Annotate,enumName,Annotate,variableName,Annotate\n");
         int i = 0;
-        for(Object a : map){
+        for(Object a : (JSONArray)map.get("data")){
             List<String> sbData = new ArrayList<>();
             JSONObject data = (JSONObject)a;
-            String path = (String)data.get("filePath");
+            String path = ((String)data.get("filePath")).replaceAll(Pattern.quote(projectPath), "");
             sb.append(path + ",");
 
             ArrayList<Object> enumList = (ArrayList)data.get("enumList");
