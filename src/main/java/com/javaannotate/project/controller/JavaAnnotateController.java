@@ -51,12 +51,18 @@ public class JavaAnnotateController {
         return result;
     }
     public String csvStringBuilder(List<String> list){
-        String buildingString = "";
-        for(String i : list){
-            buildingString += "%s,";
+        if(list.size() == 0){
+            return "";
         }
-        buildingString = buildingString.substring(0,buildingString.length() - 1);
-        return String.format(buildingString, list.toArray());
+        else{
+            String buildingString = "";
+
+            for(String i : list){
+                buildingString += "%s,";
+            }
+            buildingString = buildingString.substring(0,buildingString.length() - 1);
+            return String.format(buildingString, list.toArray());
+        }
     }
     @RequestMapping(value = "/csv", method = RequestMethod.POST)
     public String CSVCreate(HttpServletRequest request, HttpServletResponse response, @RequestBody String json) throws Exception{
@@ -160,7 +166,6 @@ public class JavaAnnotateController {
                 }
                 else{
                     sbData = new ArrayList<>();
-                    sbData.add("");
                 }
             }
             sb.append(csvStringBuilder(sbData)+"\n");
